@@ -11,7 +11,8 @@ class HttpRequest : public QObject
 {
  Q_OBJECT
  public:
-  explicit HttpRequest(QObject *parent = nullptr);
+  explicit HttpRequest(QNetworkAccessManager* networkManager,
+                       QObject *parent = nullptr);
   QByteArray data() const { return m_receivedData; }
 
   void sendRequest(QUrl url);
@@ -23,7 +24,9 @@ class HttpRequest : public QObject
   void dataReceived(QNetworkReply* pReply);
 
  private:
-  QNetworkAccessManager m_WebCtrl;
+  // A pointer to the network manager. The network manager should not be
+  // deleted until the HttpRequest object is deleted.
+  QNetworkAccessManager* m_networkManager;
   QByteArray m_receivedData;
 };
 

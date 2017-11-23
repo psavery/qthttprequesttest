@@ -2,17 +2,19 @@
 
 #include <QDebug>
 
-HttpRequest::HttpRequest(QObject *parent) :
+HttpRequest::HttpRequest(QNetworkAccessManager* networkManager,
+                         QObject *parent) :
+ m_networkManager(networkManager),
  QObject(parent)
 {
-  connect(&m_WebCtrl, &QNetworkAccessManager::finished,
+  connect(m_networkManager, &QNetworkAccessManager::finished,
           this, &HttpRequest::dataReceived);
 }
 
 void HttpRequest::sendRequest(QUrl url)
 {
   QNetworkRequest request(url);
-  m_WebCtrl.get(request);
+  m_networkManager->get(request);
 }
 
 void HttpRequest::dataReceived(QNetworkReply* pReply)
