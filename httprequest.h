@@ -22,6 +22,10 @@ class HttpRequestManager : public QObject
   // obtained data.
   size_t sendRequest(QUrl url);
 
+  // Sends a POST to a URL and returns an index that is used to access the
+  // reply data.
+  size_t sendPost(QUrl url, const QByteArray& data);
+
   // Check to see if data has been received for reply index @p i.
   bool containsData(size_t i) const;
 

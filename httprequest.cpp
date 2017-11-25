@@ -25,6 +25,19 @@ size_t HttpRequestManager::sendRequest(QUrl url)
   ++m_requestCounter;
 }
 
+size_t HttpRequestManager::sendPost(QUrl url, const QByteArray& data)
+{
+  std::unique_lock<std::mutex> lock(m_mutex);
+
+  QNetworkRequest request(url);
+  request.setHeader(QNetworkRequest::ContentTypeHeader,
+                    "application/x-www-form-urlencoded");
+  QNetworkReply* reply = m_networkManager->post(request, data);
+  m_pendingReplies[m_requestCounter] = reply;
+
+  ++m_requestCounter;
+}
+
 bool HttpRequestManager::containsData(size_t i) const
 {
   std::unique_lock<std::mutex> lock(m_mutex);
