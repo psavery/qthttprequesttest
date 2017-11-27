@@ -1,4 +1,4 @@
-#include "httprequest.h"
+#include "httprequestmanager.h"
 
 #include <QDebug>
 #include <QNetworkRequest>
@@ -22,7 +22,7 @@ size_t HttpRequestManager::sendRequest(QUrl url)
   QNetworkReply* reply = m_networkManager->get(request);
   m_pendingReplies[m_requestCounter] = reply;
 
-  ++m_requestCounter;
+  return m_requestCounter++;
 }
 
 size_t HttpRequestManager::sendPost(QUrl url, const QByteArray& data)
@@ -35,7 +35,7 @@ size_t HttpRequestManager::sendPost(QUrl url, const QByteArray& data)
   QNetworkReply* reply = m_networkManager->post(request, data);
   m_pendingReplies[m_requestCounter] = reply;
 
-  ++m_requestCounter;
+  return m_requestCounter++;
 }
 
 bool HttpRequestManager::containsData(size_t i) const

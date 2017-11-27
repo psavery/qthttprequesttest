@@ -11,7 +11,7 @@ include_directories(${Qt5Network_INCLUDE_DIRS})
 
 set(SRCS
     httprequesttest.cpp
-    httprequest.cpp)
+    httprequestmanager.cpp)
 
 add_executable(httprequesttest ${SRCS})
 

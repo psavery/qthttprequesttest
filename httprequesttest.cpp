@@ -3,7 +3,7 @@
 
 #include <QCoreApplication>
 
-#include "httprequest.h"
+#include "httprequestmanager.h"
 
 int main(int argc, char* argv[])
 {
