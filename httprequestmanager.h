@@ -41,11 +41,24 @@ class HttpRequestManager : public QObject
   // emitted with the index.
   void received(size_t);
 
+  // Signal a get request in the main thread
+  void signalGet(QNetworkRequest request, size_t requestId);
+
+  // Signal a post request in the main thread
+  void signalPost(QNetworkRequest request, QByteArray data, size_t requestId);
+
  private slots:
-  // When the network manager receives a reply, this slot will be activated.
-  // This function will make sure that the reply belongs to this object before
-  // doing anything with it.
-  void dataReceived(QNetworkReply* reply);
+  // Handle a get request in the main thread
+  void handleGet(QNetworkRequest request, size_t requestId);
+
+  // Handle a post request in the main thread
+  void handlePost(QNetworkRequest request, QByteArray data, size_t requestId);
+
+  // Handles an error that a QNetworkReply sent.
+  void handleError(QNetworkReply::NetworkError ec);
+
+  // Handles a finished QNetworkReply object.
+  void handleFinished();
 
  private:
   // A shared pointer to the network access manager.

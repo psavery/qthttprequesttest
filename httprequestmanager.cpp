@@ -10,8 +10,12 @@ HttpRequestManager::HttpRequestManager(
  m_requestCounter(0),
  QObject(parent)
 {
-  connect(m_networkManager.get(), &QNetworkAccessManager::finished,
-          this, &HttpRequestManager::dataReceived);
+  // This is done so that handleGet and handlePost are always ran in the
+  // main thread
+  connect(this, &HttpRequestManager::signalGet,
+          this, &HttpRequestManager::handleGet);
+  connect(this, &HttpRequestManager::signalPost,
+          this, &HttpRequestManager::handlePost);
 }
 
 size_t HttpRequestManager::sendRequest(QUrl url)
@@ -19,8 +23,8 @@ size_t HttpRequestManager::sendRequest(QUrl url)
   std::unique_lock<std::mutex> lock(m_mutex);
 
   QNetworkRequest request(url);
-  QNetworkReply* reply = m_networkManager->get(request);
-  m_pendingReplies[m_requestCounter] = reply;
+
+  emit signalGet(request, m_requestCounter);
 
   return m_requestCounter++;
 }
@@ -32,8 +36,8 @@ size_t HttpRequestManager::sendPost(QUrl url, const QByteArray& data)
   QNetworkRequest request(url);
   request.setHeader(QNetworkRequest::ContentTypeHeader,
                     "application/x-www-form-urlencoded");
-  QNetworkReply* reply = m_networkManager->post(request, data);
-  m_pendingReplies[m_requestCounter] = reply;
+
+  emit signalPost(request, data, m_requestCounter);
 
   return m_requestCounter++;
 }
@@ -56,9 +60,99 @@ const QByteArray& HttpRequestManager::data(size_t i) const
   return m_receivedReplies.at(i);
 }
 
-void HttpRequestManager::dataReceived(QNetworkReply* reply)
+void HttpRequestManager::handleGet(QNetworkRequest request, size_t requestId)
 {
   std::unique_lock<std::mutex> lock(m_mutex);
+
+  QNetworkReply* reply = m_networkManager->get(request);
+
+  connect(reply, (void (QNetworkReply::*)(QNetworkReply::NetworkError))
+                 (&QNetworkReply::error),
+          this, &HttpRequestManager::handleError);
+  connect(reply, &QNetworkReply::finished,
+          this, &HttpRequestManager::handleFinished);
+
+  m_pendingReplies[requestId] = reply;
+}
+
+void HttpRequestManager::handlePost(QNetworkRequest request, QByteArray data,
+                                    size_t requestId)
+{
+  std::unique_lock<std::mutex> lock(m_mutex);
+
+  QNetworkReply* reply = m_networkManager->post(request, data);
+
+  connect(reply, (void (QNetworkReply::*)(QNetworkReply::NetworkError))
+                 (&QNetworkReply::error),
+          this, &HttpRequestManager::handleError);
+  connect(reply, &QNetworkReply::finished,
+          this, &HttpRequestManager::handleFinished);
+
+  m_pendingReplies[requestId] = reply;
+}
+
+void HttpRequestManager::handleError(QNetworkReply::NetworkError ec)
+{
+  std::unique_lock<std::mutex> lock(m_mutex);
+
+  // Make sure the sender is a QNetworkReply
+  QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
+  if (!reply) {
+    qDebug() << "Error in" << __FUNCTION__ << ": sender() is not a"
+             << "QNetworkReply!";
+    return;
+  }
+
+  // Make sure this HttpRequestManager owns this reply
+  auto it = std::find_if(m_pendingReplies.begin(),
+                         m_pendingReplies.end(),
+                         [reply](const std::pair<size_t, QNetworkReply*>& item)
+                         {
+                           return reply == item.second;
+                         });
+
+  // If not, print an error and return
+  if (it == m_pendingReplies.end()) {
+    qDebug() << "Error in" << __FUNCTION__ << ": sender() is not owned by"
+             << "this HttpRequestManager instance!";
+    return;
+  }
+
+  size_t receivedInd = it->first;
+
+  // Print a message for some of the more common errors
+  if (ec == QNetworkReply::ConnectionRefusedError)
+    qDebug() << "QNetworkReply received an error: connection refused";
+  else if (ec == QNetworkReply::RemoteHostClosedError)
+    qDebug() << "QNetworkReply received an error: remote host closed";
+  else if (ec == QNetworkReply::HostNotFoundError)
+    qDebug() << "QNetworkReply received an error: host not found";
+  else if (ec == QNetworkReply::TimeoutError)
+    qDebug() << "QNetworkReply received an error: timeout";
+  else
+    qDebug() << "QNetworkReply received error code:" << ec;
+
+  m_receivedReplies[receivedInd] = reply->readAll();
+
+  m_pendingReplies.erase(receivedInd);
+
+  reply->deleteLater();
+
+  // Emit a signal
+  emit received(receivedInd);
+}
+
+void HttpRequestManager::handleFinished()
+{
+  std::unique_lock<std::mutex> lock(m_mutex);
+
+  // Make sure the sender is a QNetworkReply
+  QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
+  if (!reply) {
+    qDebug() << "Error in" << __FUNCTION__ << ": sender() is not a"
+             << "QNetworkReply!";
+    return;
+  }
 
   // Make sure this HttpRequestManager owns this reply
   auto it = std::find_if(m_pendingReplies.begin(),
@@ -75,9 +169,6 @@ void HttpRequestManager::dataReceived(QNetworkReply* reply)
   size_t receivedInd = it->first;
 
   m_receivedReplies[receivedInd] = reply->readAll();
-
-  qDebug() << "Received data!\n";
-  qDebug() << "Recieved data is:\n" << m_receivedReplies[receivedInd];
 
   m_pendingReplies.erase(receivedInd);
 
