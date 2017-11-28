@@ -10,6 +10,17 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 
+/**
+ * This class can be used to perform an http get or an http post. It takes
+ * a shared pointer to a QNetworkAccessManager, and it uses signals and slots
+ * to make sure that the QNetworkAccessManager functions are only called in
+ * the main thread (the main event loop). This way, HttpRequestManager
+ * functions can be used in threads other than the main thread.
+ *
+ * HttpRequestManager stores a map of pending replies and received replies,
+ * and it emits a signal when a new reply is received. When a new get or
+ * post is sent, the function returns a requestId to keep track of the request.
+ */
 class HttpRequestManager : public QObject
 {
  Q_OBJECT
