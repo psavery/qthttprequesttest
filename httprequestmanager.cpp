@@ -18,7 +18,7 @@ HttpRequestManager::HttpRequestManager(
           this, &HttpRequestManager::handlePost);
 }
 
-size_t HttpRequestManager::sendRequest(QUrl url)
+size_t HttpRequestManager::sendGet(QUrl url)
 {
   std::unique_lock<std::mutex> lock(m_mutex);
 

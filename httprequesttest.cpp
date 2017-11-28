@@ -13,7 +13,7 @@ int main(int argc, char* argv[])
   HttpRequestManager req(netManager);
 
   QUrl url("https://google.com");
-  req.sendRequest(url);
+  req.sendGet(url);
 
   app.connect(&req, &HttpRequestManager::received,
               &app, &QCoreApplication::quit);

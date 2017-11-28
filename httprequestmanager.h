@@ -29,9 +29,9 @@ class HttpRequestManager : public QObject
       const std::shared_ptr<QNetworkAccessManager>& networkManager,
       QObject *parent = nullptr);
 
-  // Sends a URL request and returns an index that is used to access the
+  // Sends a URL get and returns an index that is used to access the
   // obtained data.
-  size_t sendRequest(QUrl url);
+  size_t sendGet(QUrl url);
 
   // Sends a POST to a URL and returns an index that is used to access the
   // reply data.
