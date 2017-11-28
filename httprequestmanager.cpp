@@ -6,9 +6,9 @@
 HttpRequestManager::HttpRequestManager(
     const std::shared_ptr<QNetworkAccessManager>& networkManager,
     QObject* parent) :
+ QObject(parent),
  m_networkManager(networkManager),
- m_requestCounter(0),
- QObject(parent)
+ m_requestCounter(0)
 {
   // This is done so that handleGet and handlePost are always ran in the
   // main thread
